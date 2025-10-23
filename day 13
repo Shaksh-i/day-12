@@ -1,0 +1,200 @@
+ Banking Mini-App with Authentication + Authorization (Django)
+
+Step 1: Create Project and App
+django-admin startproject bankapp
+cd bankapp
+python manage.py startapp accounts
+Update settings.py:
+INSTALLED_APPS = [
+    ...
+    'accounts',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+]
+Step 2: Database Setup
+Run initial migrations and create a superuser:
+python manage.py migrate
+python manage.py createsuperuser
+Step 3: Models (Bank Account)
+accounts/models.py
+from django.db import models
+from django.contrib.auth.models import User
+
+class Account(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return f"{self.user.username} - Balance: {self.balance}"
+Apply migrations:
+python manage.py makemigrations
+python manage.py migrate
+Step 4: URLs
+bankapp/urls.py
+from django.contrib import admin
+from django.urls import path, include
+from accounts import views
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('accounts/', include('django.contrib.auth.urls')),  # login/logout
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('customer-dashboard/', views.customer_dashboard, name='customer_dashboard'),
+]
+Step 5: Views
+accounts/views.py
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required, user_passes_test
+from .models import Account
+
+# --- Role Checks ---
+def is_admin(user):
+    return user.groups.filter(name="Admin").exists()
+
+def is_customer(user):
+    return user.groups.filter(name="Customer").exists()
+
+# --- Dashboards ---
+@login_required
+def dashboard(request):
+    """Redirect user to correct dashboard based on role"""
+    if is_admin(request.user):
+        return render(request, 'accounts/admin_dashboard.html')
+    elif is_customer(request.user):
+        account = Account.objects.get(user=request.user)
+        return render(request, 'accounts/customer_dashboard.html', {'account': account})
+    else:
+        return render(request, 'accounts/no_role.html')
+
+@login_required
+@user_passes_test(is_admin)
+def admin_dashboard(request):
+    customers = Account.objects.all()
+    return render(request, 'accounts/admin_dashboard.html', {'customers': customers})
+
+@login_required
+@user_passes_test(is_customer)
+def customer_dashboard(request):
+    account = Account.objects.get(user=request.user)
+    return render(request, 'accounts/customer_dashboard.html', {'account': account})
+Step 6: Templates
+Create folders:
+bankapp/
+ └── templates/
+     ├── registration/
+     │   └── login.html
+     └── accounts/
+         ├── customer_dashboard.html
+         ├── admin_dashboard.html
+         └── no_role.html
+templates/registration/login.html
+<h2>Login</h2>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Login</button>
+</form>
+templates/accounts/customer_dashboard.html
+<h2>Customer Dashboard</h2>
+<p>Welcome {{ user.username }}!</p>
+<p>Your account balance: {{ account.balance }}</p>
+<a href="{% url 'logout' %}">Logout</a>
+templates/accounts/admin_dashboard.html
+<h2>Admin Dashboard</h2>
+<p>Welcome Admin {{ user.username }}!</p>
+<h3>All Customers:</h3>
+<ul>
+  {% for c in customers %}
+    <li>{{ c.user.username }} → Balance: {{ c.balance }}</li>
+  {% endfor %}
+</ul>
+<a href="{% url 'logout' %}">Logout</a>
+templates/accounts/no_role.html
+<h2>No Role Assigned</h2>
+<p>Hello {{ user.username }}, please contact support to assign your role.</p>
+<a href="{% url 'logout' %}">Logout</a>
+Step 7: Role Setup in Admin Panel
+1.	Run server:
+2.	python manage.py runserver
+3.	Go to /admin/ → login with superuser
+4.	Add Groups:
+o	Customer
+o	Admin
+5.	Create users:
+o	Assign some users to Customer
+o	Assign some users to Admin --Alice
+6.	(Optional) Add Account objects for each customer (link them to their User).
+Step 8: Flow
+1.	Visit /accounts/login/ → enter username/password
+2.	After login:
+o	If Customer → goes to /customer-dashboard/
+o	If Admin → goes to /admin-dashboard/
+o	If no role → sees /no_role/ message
+3.	Logout via /accounts/logout/
+Final Outcome
+•	Authentication: Handled by Django’s built-in login/logout
+•	Authorization: Role-based dashboards using Groups
+•	Real-World Banking App:
+o	Customers see their balance
+o	Admins see all customers & balances
+o	Unauthorized users can’t access restricted pages
+
+Learning Outcomes from the Banking Mini-App
+1.	Django Project Setup & App Structure
+o	Creating a project (django-admin startproject) and app (startapp)
+o	Configuring INSTALLED_APPS in settings.py
+o	Understanding project vs app in Django
+2.	Authentication (Who is the user?)
+o	Using Django’s built-in User model
+o	Login and logout functionality
+o	Session management: How Django keeps users logged in across requests
+o	Using login_required decorator to protect views
+3.	Authorization (What can the user do?)
+o	Role-based access control using Groups (Customer vs Admin)
+o	Using user_passes_test decorator to restrict access to certain views
+o	Redirecting users to appropriate pages based on their role
+4.	Django Models
+o	Creating Account model linked to User (OneToOneField)
+o	Storing and retrieving user-specific data (e.g., account balance)
+o	Understanding migrations: makemigrations & migrate
+5.	Admin Panel
+o	Creating and managing Groups and Users
+o	Assigning roles and permissions
+o	Linking Account objects to users
+6.	Views & Templates
+o	Writing role-based views (dashboard, customer_dashboard, admin_dashboard)
+o	Passing context data to templates ({{ user.username }}, {{ account.balance }})
+o	Creating clean templates with HTML forms and links
+7.	Decorators
+o	@login_required → protects views, ensures user is authenticated
+o	@user_passes_test → allows role-based access control
+o	Understanding how decorators check session info before executing a view
+8.	Sessions
+o	How Django keeps track of logged-in users across requests
+o	request.user is populated from session
+o	login() creates a session, logout() destroys it
+o	Sessions underpin all authentication and decorator-based access control
+9.	Real-World Application Flow
+o	Multi-role workflow:
+	Customer sees personal dashboard
+	Admin sees all customers & their balances
+	Users without a role get a notification
+o	Simulates a banking system scenario
+10.	Putting it all together
+o	Combining authentication + authorization + models + templates + decorators + sessions
+o	Understanding how a real web app restricts access based on identity and role
+o	Prepares you to extend this app with transactions, approvals, or other workflows
+
+Key Concepts Practically Demonstrated
+Concept	How Demonstrated in App
+Authentication	Login, logout, login_required
+Authorization	Role-based dashboards, user_passes_test, Groups
+User-Model Integration	Account linked to User
+Access Control	Customers vs Admins, no-role handling
+Session Management	Django handles sessions automatically
+Admin Features	Groups, Users, Account management
+
