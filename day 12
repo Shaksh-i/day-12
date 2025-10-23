@@ -1,0 +1,264 @@
+ 
+
+Assignment1: Problem Statement 
+
+Title: Inventory Management: Categories and Products 
+
+Description: 
+You are tasked with creating a simple inventory management system using Flask and SQLAlchemy. The system should allow the management of categories and products. Each product belongs to one category, and each category can have multiple products. 
+
+Requirements: 
+
+Category Management 
+
+Fields: id, name, description 
+
+Features:  
+
+Add a new category 
+
+List all categories 
+
+Update category details 
+
+Delete a category 
+
+Product Management 
+
+Fields: id, name, price, stock, category_id (foreign key) 
+
+Features:  
+
+Add a new product (must belong to an existing category) 
+
+List all products with their category name 
+
+Update product details 
+
+Delete a product 
+
+Relationships 
+
+A Category can have multiple Products (One-to-Many) 
+
+A Product belongs to one Category 
+
+Views / Routes 
+
+/categories → List categories 
+
+/categories/add → Add category 
+
+/products → List products with category info 
+
+/products/add → Add product 
+
+ 
+
+Hint: How to establish relationship in Product model 
+
+In SQLAlchemy, you can define a one-to-many relationship as follows: 
+
+from flask_sqlalchemy import SQLAlchemy 
+ 
+db = SQLAlchemy() 
+class Category(db.Model): 
+    id = db.Column(db.Integer, primary_key=True) 
+    name = db.Column(db.String(100), nullable=False) 
+    description = db.Column(db.String(200)) 
+     
+    # One-to-Many: A category has many products    products = db.relationship('Product', backref='category', lazy=True) 
+class Product(db.Model): 
+    id = db.Column(db.Integer, primary_key=True) 
+    name = db.Column(db.String(100), nullable=False) 
+    price = db.Column(db.Float, nullable=False) 
+    stock = db.Column(db.Integer, nullable=False) 
+     
+    # Foreign Key to Category    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False) 
+
+Explanation: 
+
+db.relationship('Product', backref='category') → allows you to access all products of a category (category.products) and the category of a product (product.category) 
+
+db.ForeignKey('category.id') → links Product to Category 
+
+ 
+
+Assignment2:  Problem Statement: Flask Department API with Django Client 
+
+Title: Department Management API with Flask and Client in Django 
+
+Description: 
+You are required to create a RESTful API using Flask and SQLite3 to manage department details in an organization. Additionally, create a Django client application that consumes this API using the requests library. 
+
+Shape 
+
+Part 1: Flask API 
+
+Model: Department 
+
+Fields: 
+
+id (Integer, Primary Key) 
+
+name (String, required) 
+
+location (String, required) 
+
+head_of_department (String, optional) 
+
+Requirements: 
+
+Database 
+
+Use SQLite3 for persistence. 
+
+Use SQLAlchemy ORM to define the Department model. 
+
+API Endpoints 
+
+Method 
+
+Endpoint 
+
+Description 
+
+GET 
+
+/departments 
+
+List all departments 
+
+GET 
+
+/departments/<int:id> 
+
+Get details of a single department 
+
+POST 
+
+/departments 
+
+Create a new department 
+
+PUT 
+
+/departments/<int:id> 
+
+Update department details 
+
+DELETE 
+
+/departments/<int:id> 
+
+Delete a department 
+
+Validation 
+
+name and location must not be empty. 
+
+Return appropriate HTTP status codes: 200, 201, 404, 400. 
+
+Shape 
+
+Part 2: Django API Client 
+
+Requirements: 
+
+Create a Django App (e.g., api_client) that will consume the Flask API. 
+
+Use the requests library to perform the following: 
+
+Fetch all departments and display in a template 
+
+View details of a single department 
+
+Add a new department using a Django form 
+
+Update an existing department 
+
+Delete a department 
+
+Templates 
+
+List page (departments.html) showing all departments 
+
+Detail page (department_detail.html) 
+
+Form page (department_form.html) for Add/Edit 
+
+Shape 
+
+Hints / Guidance 
+
+Flask Department Model using SQLAlchemy: 
+
+from flask_sqlalchemy import SQLAlchemy 
+
+ 
+
+db = SQLAlchemy() 
+
+ 
+
+class Department(db.Model): 
+
+    id = db.Column(db.Integer, primary_key=True) 
+
+    name = db.Column(db.String(100), nullable=False) 
+
+    location = db.Column(db.String(100), nullable=False) 
+
+    head_of_department = db.Column(db.String(100)) 
+
+Sample Flask route for GET /departments: 
+
+from flask import Flask, jsonify 
+
+app = Flask(__name__) 
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///departments.db' 
+
+db.init_app(app) 
+
+ 
+
+@app.route('/departments', methods=['GET']) 
+
+def get_departments(): 
+
+    departments = Department.query.all() 
+
+    result = [{"id": d.id, "name": d.name, "location": d.location, "head_of_department": d.head_of_department} for d in departments] 
+
+    return jsonify(result) 
+
+Django API Client Example using requests: 
+
+import requests 
+
+ 
+
+response = requests.get('http://127.0.0.1:5000/departments') 
+
+departments = response.json() 
+
+ 
+
+Deliverables 
+
+Flask API with all CRUD operations working on SQLite3. 
+
+Django client app that can interact with Flask API using forms and templates. 
+
+Screenshots or demo showing: 
+
+Departments list in Django 
+
+Adding/updating/deleting departments via Django client 
+
+Proper API responses in Flask (via Postman or browser) 
+
+ 
+
+ 
