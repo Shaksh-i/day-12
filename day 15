@@ -1,103 +1,218 @@
-Folder structure: 
 
-tests/ 
+Day 15 Assignment – Question 2 (Flask Version)
+Problem Statement:
+Employee Management API Testing with Flask + Flask-RESTful (or Flask API)
+You are tasked with testing a Flask API that manages employee records. The API exposes the following endpoints under /employees/:
+1.	POST /employees/ → Create a new employee
+2.	GET /employees/ → Retrieve the list of all employees
+3.	GET /employees/{id}/ → Retrieve a single employee by ID
+4.	PUT /employees/{id}/ → Update an existing employee by ID
+5.	DELETE /employees/{id}/ → Delete an employee by ID
+Each Employee record has the following fields:
+•	id (auto-generated primary key)
+•	name (string, required)
+•	role (string, required)
+•	salary (decimal, required)
+Your Task:
+Write unit tests using Flask’s unittest.TestCase and Flask’s built-in test client to validate the following behaviors:
+1.	Create Employee: Ensure a new employee can be created successfully, and the response contains the correct name field.
+2.	List Employees: Ensure the endpoint returns all employees present in the database (or in-memory list).
+3.	Get Employee by ID: Ensure retrieving a single employee by ID returns the correct name and role.
+4.	Update Employee: Ensure updating an employee’s role or salary reflects correctly in the response.
+5.	Delete Employee: Ensure deleting an employee removes them successfully (response code 204).
+Deliverables:
+•	A EmployeeAPITest test class with methods for each of the above scenarios.
+•	Tests must use self.assertEqual for response validation.
+•	Use setUp() to initialize test data before each test (for example, inserting one employee into the in-memory store).
 
-    test_app.py 
+UNITTEST FRAMEWORK FOR FLASK API
 
-File: tests/test_app.py 
+import unittest
+import json
+from app import app   # assuming your Flask API is in app.py
 
-import unittest 
+class EmployeeAPITest(unittest.TestCase):
+    def setUp(self):
+        # Creates a test client
+        self.app = app.test_client()
+        self.app.testing = True
 
-from app import app 
+        # Create a sample employee for testing
+        self.employee_data = {
+            "name": "John",
+            "role": "Lead",
+            "salary": 80000
+        }
 
-class CalculatorFlaskTestCase(unittest.TestCase): 
+        response = self.app.post(
+            "/employees/",
+            data=json.dumps(self.employee_data),
+            content_type="application/json"
+        )
+        self.employee_id = json.loads(response.data)["id"]
 
-    def setUp(self): 
+    def test_create_employee(self):
+        """Test creating a new employee"""
+        new_employee = {
+            "name": "Alice",
+            "role": "Developer",
+            "salary": 75000
+        }
+        response = self.app.post(
+            "/employees/",
+            data=json.dumps(new_employee),
+            content_type="application/json"
+        )
+        data = json.loads(response.data)
 
-        app.config['TESTING'] = True 
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(data["name"], "Alice")
 
-        self.client = app.test_client() 
+    def test_get_employee_list(self):
+        """Test retrieving list of employees"""
+        response = self.app.get("/employees/")
+        data = json.loads(response.data)
 
- 
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(data) >= 1)  # At least the one from setUp
 
-    def test_template_contains_form_fields(self): 
+    def test_get_employee_by_id(self):
+        """Test retrieving employee by ID"""
+        response = self.app.get(f"/employees/{self.employee_id}/")
+        data = json.loads(response.data)
 
-        resp = self.client.get('/') 
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data["name"], "John")
+        self.assertEqual(data["role"], "Lead")
 
-        self.assertEqual(resp.status_code, 200) 
+    def test_update_employee(self):
+        """Test updating employee role and salary"""
+        updated_data = {
+            "name": "John",
+            "role": "Senior Lead",
+            "salary": 90000
+        }
+        response = self.app.put(
+            f"/employees/{self.employee_id}/",
+            data=json.dumps(updated_data),
+            content_type="application/json"
+        )
+        data = json.loads(response.data)
 
-        data = resp.get_data(as_text=True) 
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data["role"], "Senior Lead")
+        self.assertEqual(data["salary"], 90000)
 
-        self.assertIn('name="a"', data) 
+    def test_delete_employee(self):
+        """Test deleting employee"""
+        response = self.app.delete(f"/employees/{self.employee_id}/")
 
-        self.assertIn('name="b"', data) 
+        self.assertEqual(response.status_code, 204)
 
-        self.assertIn('name="operation"', data) 
+        # Verify it's gone
+        get_response = self.app.get(f"/employees/{self.employee_id}/")
+        self.assertEqual(get_response.status_code, 404)
 
- 
 
-    def test_multiple_cases(self): 
+if __name__ == "__main__":
+    unittest.main()
 
-        cases = [ 
 
-            ('1', '2', 'add', '3'), 
 
-            ('5', '3', 'subtract', '2'), 
+PYTEST FRAMEWORK FOR FLASK API
 
-            ('2', '3', 'multiply', '6'), 
+import pytest
+import json
+from app import app   # assuming your Flask API is in app.py
 
-            ('7', '2', 'divide', '3.5'), 
 
-        ] 
+@pytest.fixture
+def client():
+    """Fixture to provide Flask test client"""
+    app.testing = True
+    return app.test_client()
 
-        for a, b, op, expected in cases: 
 
-            with self.subTest(a=a, b=b, op=op): 
+@pytest.fixture
+def employee(client):
+    """Fixture to create a sample employee before tests"""
+    employee_data = {
+        "name": "John",
+        "role": "Lead",
+        "salary": 80000
+    }
+    response = client.post(
+        "/employees/",
+        data=json.dumps(employee_data),
+        content_type="application/json"
+    )
+    return json.loads(response.data)  # return the created employee dict
 
-                resp = self.client.post('/', data={'a': a, 'b': b, 'operation': op}) 
 
-                self.assertEqual(resp.status_code, 200) 
+def test_create_employee(client):
+    """Test creating a new employee"""
+    new_employee = {
+        "name": "Alice",
+        "role": "Developer",
+        "salary": 75000
+    }
+    response = client.post(
+        "/employees/",
+        data=json.dumps(new_employee),
+        content_type="application/json"
+    )
+    data = json.loads(response.data)
 
-                self.assertIn(f'Result: {expected}', resp.get_data(as_text=True)) 
+    assert response.status_code == 201
+    assert data["name"] == "Alice"
 
- 
 
-    def test_divide_by_zero(self): 
+def test_get_employee_list(client, employee):
+    """Test retrieving list of employees"""
+    response = client.get("/employees/")
+    data = json.loads(response.data)
 
-        resp = self.client.post('/', data={'a': '5', 'b': '0', 'operation': 'divide'}) 
+    assert response.status_code == 200
+    assert any(emp["id"] == employee["id"] for emp in data)
 
-        self.assertEqual(resp.status_code, 200) 
 
-        self.assertIn('Cannot divide by zero', resp.get_data(as_text=True)) 
+def test_get_employee_by_id(client, employee):
+    """Test retrieving employee by ID"""
+    response = client.get(f"/employees/{employee['id']}/")
+    data = json.loads(response.data)
 
- 
+    assert response.status_code == 200
+    assert data["name"] == "John"
+    assert data["role"] == "Lead"
 
-    def test_invalid_input(self): 
 
-        resp = self.client.post('/', data={'a': 'abc', 'b': '2', 'operation': 'add'}) 
+def test_update_employee(client, employee):
+    """Test updating employee role and salary"""
+    updated_data = {
+        "name": "John",
+        "role": "Senior Lead",
+        "salary": 90000
+    }
+    response = client.put(
+        f"/employees/{employee['id']}/",
+        data=json.dumps(updated_data),
+        content_type="application/json"
+    )
+    data = json.loads(response.data)
 
-        self.assertIn('Invalid input', resp.get_data(as_text=True)) 
+    assert response.status_code == 200
+    assert data["role"] == "Senior Lead"
+    assert data["salary"] == 90000
 
- 
 
-if __name__ == '__main__': 
+def test_delete_employee(client, employee):
+    """Test deleting employee"""
+    response = client.delete(f"/employees/{employee['id']}/")
 
-    unittest.main() 
+    assert response.status_code == 204
 
-Run Flask App 
+    # Verify employee is deleted
+    get_response = client.get(f"/employees/{employee['id']}/")
+    assert get_response.status_code == 404
 
-python app.py 
 
-Open browser: http://127.0.0.1:5000/ 
-
-Run Tests 
-
-# Run all tests 
-
-python -m unittest discover -v 
-
- 
-
-# Or run a single test file 
-
-python -m unittest tests.test_app 
