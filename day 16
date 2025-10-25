@@ -1,103 +1,134 @@
-Folder structure: 
+Day 16 Assignments 
+Question1: 
+Problem Statement: Weather Forecast App — Mocking External APIs
+You are tasked with writing unit tests for a simple Weather Forecast API built in Django and Flask. The API retrieves weather data from an external service (simulated here) and returns the temperature for a given city.
+Since we cannot rely on the real external API during testing, you need to mock the API calls to test your code independently.
+Requirements
+1.	API Functionality:
+o	Django view: /weather/<city>/
+o	Flask route: /weather/<city>
+o	Returns JSON:
+o	{
+o	  "city": "London",
+o	  "temperature": 25
+o	}
+o	The temperature is normally fetched from an external API function get_weather_from_api(city).
+2.	Testing:
+o	Write unit tests to check the response of the endpoint.
+o	Mock the external API call so that the test does not make real HTTP requests.
+o	Verify that the endpoint:
+	Returns the correct JSON structure.
+	Returns the mocked temperature correctly.
+o	(Optional) Test error handling for invalid cities or API failures.
 
-tests/ 
+Hints / Starter Code
+Django
+# views.py
+from django.http import JsonResponse
 
-    test_app.py 
+def get_weather_from_api(city):
+    # Imagine this calls an external API
+    pass
 
-File: tests/test_app.py 
+def weather_view(request, city):
+    temperature = get_weather_from_api(city)
+    return JsonResponse({"city": city, "temperature": temperature})
+# tests.py
+from django.test import TestCase, Client
+from unittest.mock import patch
 
-import unittest 
+class WeatherViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
 
-from app import app 
+    @patch('myapp.views.get_weather_from_api')
+    def test_weather_view_returns_mocked_temperature(self, mock_get_weather):
+        mock_get_weather.return_value = 30
+        response = self.client.get('/weather/London/')
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"city": "London", "temperature": 30})
+________________________________________
+Flask
+# app.py
+from flask import Flask, jsonify
 
-class CalculatorFlaskTestCase(unittest.TestCase): 
+app = Flask(__name__)
 
-    def setUp(self): 
+def get_weather_from_api(city):
+    # Imagine this calls an external API
+    pass
 
-        app.config['TESTING'] = True 
+@app.route('/weather/<city>')
+def weather(city):
+    temperature = get_weather_from_api(city)
+    return jsonify({"city": city, "temperature": temperature})
+# test_app.py
+import unittest
+from unittest.mock import patch
+from app import app
 
-        self.client = app.test_client() 
+class WeatherTests(unittest.TestCase):
+    def setUp(self):
+        self.client = app.test_client()
 
- 
+    @patch('app.get_weather_from_api')
+    def test_weather_returns_mocked_temperature(self, mock_get_weather):
+        mock_get_weather.return_value = 28
+        response = self.client.get('/weather/London')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {"city": "London", "temperature": 28})
 
-    def test_template_contains_form_fields(self): 
+if __name__ == "__main__":
+    unittest.main()
 
-        resp = self.client.get('/') 
+Learning Objectives
+•	Understand mocking external dependencies.
+•	Learn unit testing with Django TestCase and Flask unittest.
+•	Practice patching functions to simulate API responses.
+•	Verify JSON responses without relying on real API calls.
 
-        self.assertEqual(resp.status_code, 200) 
 
-        data = resp.get_data(as_text=True) 
+Question2: JavaScript
+Problem Statement: Student Grading Dashboard
+You are tasked with creating a simple Student Grading Dashboard using HTML and JavaScript. The dashboard should allow a teacher to enter student names and their scores, and then process and display information based on the following requirements.
+Requirements:
+1.	HTML Structure:
+o	An input field to enter the student name.
+o	An input field to enter the student score (0–100).
+o	A button "Add Student" that will trigger a JavaScript function on click.
+o	A section (e.g., <div> or <ul>) to display the list of students and their grades.
+2.	JavaScript Functionality:
+o	Use variables with let and const appropriately.
+o	Create a function addStudent that will:
+	Take values from the input fields.
+	Store student information in an array of objects (e.g., {name: "Alice", score: 85}).
+o	Use an arrow function to calculate the grade based on the score:
+	A → 90–100
+	B → 80–89
+	C → 70–79
+	D → 60–69
+	F → below 60
+o	Use map to transform the student array into an array of strings that display: "Name - Score - Grade".
+o	Use filter to create a separate list of students who scored above 80.
+o	Use string methods (toUpperCase, slice, etc.) to format the student names in uppercase and limit to the first 10 characters if the name is long.
+o	Display all results dynamically in the HTML section.
+3.	Extra Challenge (Optional):
+o	Add a button "Show Top Scorers" that will display only students with a grade A or B.
+o	Style the output using basic HTML and inline CSS.
+Example Output:
+Input:
+•	Name: Alice, Score: 92
+•	Name: Bob, Score: 78
+Displayed List:
+•	ALICE - 92 - A
+•	BOB - 78 - C
+Filtered List (Score > 80):
+•	ALICE - 92 - A
+________________________________________
+This problem tests their understanding of:
+•	Variables (let/const)
+•	Functions and arrow functions
+•	map and filter
+•	String manipulation
+•	HTML DOM interaction and events (onclick)
 
-        self.assertIn('name="a"', data) 
-
-        self.assertIn('name="b"', data) 
-
-        self.assertIn('name="operation"', data) 
-
- 
-
-    def test_multiple_cases(self): 
-
-        cases = [ 
-
-            ('1', '2', 'add', '3'), 
-
-            ('5', '3', 'subtract', '2'), 
-
-            ('2', '3', 'multiply', '6'), 
-
-            ('7', '2', 'divide', '3.5'), 
-
-        ] 
-
-        for a, b, op, expected in cases: 
-
-            with self.subTest(a=a, b=b, op=op): 
-
-                resp = self.client.post('/', data={'a': a, 'b': b, 'operation': op}) 
-
-                self.assertEqual(resp.status_code, 200) 
-
-                self.assertIn(f'Result: {expected}', resp.get_data(as_text=True)) 
-
- 
-
-    def test_divide_by_zero(self): 
-
-        resp = self.client.post('/', data={'a': '5', 'b': '0', 'operation': 'divide'}) 
-
-        self.assertEqual(resp.status_code, 200) 
-
-        self.assertIn('Cannot divide by zero', resp.get_data(as_text=True)) 
-
- 
-
-    def test_invalid_input(self): 
-
-        resp = self.client.post('/', data={'a': 'abc', 'b': '2', 'operation': 'add'}) 
-
-        self.assertIn('Invalid input', resp.get_data(as_text=True)) 
-
- 
-
-if __name__ == '__main__': 
-
-    unittest.main() 
-
-Run Flask App 
-
-python app.py 
-
-Open browser: http://127.0.0.1:5000/ 
-
-Run Tests 
-
-# Run all tests 
-
-python -m unittest discover -v 
-
- 
-
-# Or run a single test file 
-
-python -m unittest tests.test_app 
